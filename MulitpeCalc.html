@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<title>Multi-Calculator Hub</title>
+<style>
+  body {
+    font-family: "Poppins", system-ui, sans-serif;
+    margin: 0;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+  }
+
+  @keyframes bgMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  h1 { margin: 0px;
+  margin-bottom: 20px;
+  font-weight: 600;
+  }
+  h2 {
+    font-weight: 600;
+  }
+
+  /* GRID card holding buttons */
+  .grid {
+    display: flex;
+    gap: 14px;
+    background: rgba(255,255,255,0.7);
+    padding: 10px;
+    border-radius: 999px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+    margin-bottom: 30px;
+    opacity: 0;
+    transform: translateY(40px) scale(0.95);
+    animation: popUpBounce 0.8s cubic-bezier(0.22, 1.2, 0.36, 1) forwards;
+  }
+
+  /* stagger animation for buttons */
+  .grid .card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 999px;
+    padding: 22px 26px;
+    min-width: 160px;
+    text-align: center;
+    cursor: pointer;
+    border: 2px solid #eee;
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+    animation: buttonPop 0.6s cubic-bezier(0.22, 1.2, 0.36, 1) forwards;
+  }
+  #card-btn {
+      cursor: pointer;
+    transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    filter 0.15s ease;
+    position: relative;
+    overflow: hidden;
+
+
+  }
+  #card-btn:hover {
+   transform: translateY(-4px) scale(1.03);
+    box-shadow: 0 16px 32px rgba(0,0,0,0.18);
+    filter: brightness(1.05);
+    border: 2px solid #c2c2c2;
+  }
+  #card-btn:active {
+      transform: translateY(1px) scale(0.97);
+   box-shadow: 0 6px 14px rgba(0,0,0,0.18);
+   border: 2px solid #c2c2c2;
+  }
+  #cute-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(255,255,255,0.5) 10%, transparent 10%);
+  background-position: center;
+  background-size: 0 0;
+  opacity: 0;
+  transition: background-size 0.4s ease, opacity 0.6s ease;
+}
+
+#cute-btn:active::after {
+  background-size: 200% 200%;
+  opacity: 1;
+  transition: 0s;
+}
+
+  .grid .card:nth-child(1) { animation-delay: 0.2s; }
+  .grid .card:nth-child(2) { animation-delay: 0.35s; }
+  .grid .card:nth-child(3) { animation-delay: 0.5s; }
+
+  .grid .card:hover { transform: translateY(-5px) scale(1.02); }
+
+  @keyframes popUpBounce {
+    0% { opacity: 0; transform: translateY(40px) scale(0.95); }
+    60% { opacity: 1; transform: translateY(-6px) scale(1.02); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @keyframes buttonPop {
+    0% { opacity: 0; transform: translateY(20px) scale(0.95); }
+    60% { opacity: 1; transform: translateY(-4px) scale(1.02); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* Calculator cards */
+  .calculatorCard {
+    display: none;
+    max-width: 420px;
+    width: 100%;
+    padding: 26px;
+    box-sizing: border-box;
+    border-radius: 20px;
+    background: white;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+    transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .calculatorCard.show {
+    display: block;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  .calculatorCard.hidden {
+    opacity: 0;
+    transform: translateY(25px) scale(0.97);
+  }
+
+  label { display:block; margin-bottom:6px; font-weight:500; }
+
+input, select {
+  width: 100%;           /* stay full width of card padding */
+  max-width: 360px;      /* prevent it from reaching outside */
+  padding: 12px;
+  border-radius: 14px;
+  border: 2px solid #eee;
+  margin-bottom: 16px;
+  box-sizing: border-box; /* make sure padding doesn't overflow */
+}
+
+
+  .results {
+    margin-top: 20px;
+    background: #fff6fb;
+    border-radius: 16px;
+    padding: 16px;
+  }
+
+  .row.total { font-weight:700; }
+
+  .centering {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+   display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+     background: linear-gradient(270deg, #ffd1e8, #fff1b8, #d7f3ff, #ffd1e8);
+    background-size: 600% 600%;
+    animation: bgMove 12s ease infinite;
+    
+  }
+
+  /* Bubble effect styles */
+  .bubble {
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    animation: float-up 1.5s ease-out forwards;
+    box-shadow: 
+      inset 0 0 10px rgba(255, 255, 255, 0.5),
+      0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  @keyframes float-up {
+    0% {
+      transform: translateY(0) scale(1);
+      opacity: 0.9;
+    }
+    50% {
+      opacity: 0.7;
+    }
+    100% {
+      transform: translateY(-200px) scale(0.3);
+      opacity: 0;
+    }
+  }
+
+  /* Music toggle button */
+  .music-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid #eee;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1000;
+  }
+
+  .music-toggle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+    border-color: #c2c2c2;
+  }
+
+  .music-toggle:active {
+    transform: scale(0.95);
+  }
+</style>
+</head>
+<body>
+  <button class="music-toggle" id="musicToggle" onclick="toggleMusic()">🔇</button>
+  <div class="centering" onclick="clickSound()">
+<h1>Calculator Hub</h1>
+
+<div class="grid">
+  <div class="card" id="card-btn" onclick="showCalculator('money')">Money Converter</div>
+  <div class="card" id="card-btn" onclick="showCalculator('weight')">Weight Converter</div>
+  <div class="card" id="card-btn" onclick="showCalculator('salary')">Salary Calculator</div>
+</div>
+
+<div class="card calculatorCard hidden" id="moneyCard">
+  <h2>Money Converter</h2>
+  <input type="number" id="moneyAmount" placeholder="Amount" oninput="convertMoney()">
+  <select id="fromCurrency" onchange="convertMoney()"><option>USD</option><option>EUR</option><option>YEN</option></select>
+  <select id="toCurrency" onchange="convertMoney()"><option>USD</option><option>EUR</option><option>YEN</option></select>
+  <div class="results" id="moneyResults" style="display:none;">
+    <div class="row total"><span id="converted">0</span></div>
+  </div>
+</div>
+
+<div class="card calculatorCard hidden" id="weightCard">
+  <h2>Weight Converter</h2>
+  <input type="number" id="weightAmount" placeholder="Amount" oninput="convertWeight()">
+  <select id="fromWeight" onchange="convertWeight()"><option value="g">g</option><option value="kg">kg</option><option value="oz">oz</option><option value="lb">lb</option></select>
+  <select id="toWeight" onchange="convertWeight()"><option value="g">g</option><option value="kg">kg</option><option value="oz">oz</option><option value="lb">lb</option></select>
+  <div class="results" id="weightResults" style="display:none;">
+    <div class="row total"><span id="weightConverted">0</span></div>
+  </div>
+</div>
+
+<div class="card calculatorCard hidden" id="salaryCard">
+  <h2>Salary Calculator</h2>
+  <input type="number" id="hourlyRate" placeholder="Hourly Rate" oninput="calculateSalary()">
+  <input type="number" id="hoursWeek" placeholder="Hours / Week" oninput="calculateSalary()">
+  <input type="number" id="weeksYear" placeholder="Weeks / Year" oninput="calculateSalary()">
+  <div class="results" id="salaryResults" style="display:none;">
+    <div class="row total"><span id="annualSalary">$0.00</span></div>
+  </div>
+</div>
+</div>
+<script>
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function keySound(freq = 700) {
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  osc.type = "square";
+  osc.frequency.value = freq;
+  gain.gain.value = 0.06;
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.03);
+}
+
+const rates = { USD:1, EUR:0.93, YEN:145 };
+
+function hideAll() {
+  document.querySelectorAll('.calculatorCard').forEach(card => {
+    card.classList.remove('show');
+    card.classList.add('hidden');
+    card.style.display = 'none';
+  });
+}
+
+function showCalculator(type) {
+  hideAll();
+  const card = document.getElementById(type + 'Card');
+  if (!card) return;
+  card.style.display = 'block';
+  requestAnimationFrame(() => {
+    card.classList.remove('hidden');
+    card.classList.add('show');
+  });
+}
+
+function convertMoney() {
+  if (moneyAmount.value === '') {
+    moneyResults.style.display = 'none';
+    return;
+  }
+  const amount = +moneyAmount.value;
+  converted.textContent = (amount * (rates[toCurrency.value] / rates[fromCurrency.value])).toFixed(2);
+  moneyResults.style.display='block';
+}
+
+function convertWeight() {
+  if (weightAmount.value === '') {
+    weightResults.style.display='none';
+    return;
+  }
+  const a = +weightAmount.value;
+  const g = fromWeight.value==='kg'?a*1000:fromWeight.value==='oz'?a*28.3495:fromWeight.value==='lb'?a*453.592:a;
+  weightConverted.textContent = (toWeight.value==='kg'?g/1000:toWeight.value==='oz'?g/28.3495:toWeight.value==='lb'?g/453.592:g).toFixed(2);
+  weightResults.style.display='block';
+}
+
+function calculateSalary() {
+  if(hourlyRate.value === '' || hoursWeek.value === '' || weeksYear.value === '') {
+    salaryResults.style.display='none';
+    return;
+  }
+  const r=+hourlyRate.value,h=+hoursWeek.value,w=+weeksYear.value;
+  annualSalary.textContent='$'+(r*h*w).toFixed(2);
+  salaryResults.style.display='block';
+}
+
+// Bubble effect function
+function createBubble(x, y) {
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  
+  // Random size between 20-60px
+  const size = Math.random() * 40 + 20;
+  bubble.style.width = size + 'px';
+  bubble.style.height = size + 'px';
+  
+  // Position at click location
+  bubble.style.left = (x - size / 2) + 'px';
+  bubble.style.top = (y - size / 2) + 'px';
+  
+  // Random pastel colors matching the background gradient
+  const colors = [
+    'rgba(255, 209, 232, 0.7)', // pink
+    'rgba(255, 241, 184, 0.7)', // yellow
+    'rgba(215, 243, 255, 0.7)', // blue
+    'rgba(255, 255, 255, 0.6)'  // white
+  ];
+  bubble.style.background = colors[Math.floor(Math.random() * colors.length)];
+  
+  // Add slight horizontal drift
+  const drift = (Math.random() - 0.5) * 100;
+  bubble.style.setProperty('--drift', drift + 'px');
+  
+  document.body.appendChild(bubble);
+  
+  // Remove bubble after animation completes
+  setTimeout(() => bubble.remove(), 1500);
+}
+
+// Track drag state
+let isDragging = false;
+let lastBubbleTime = 0;
+
+document.addEventListener('mousedown', () => {
+  isDragging = true;
+});
+
+document.addEventListener('mouseup', () => {
+  isDragging = false;
+});
+
+// Add click listener for bubbles
+document.addEventListener('click', (e) => {
+  // Create 3-5 bubbles per click
+  const bubbleCount = Math.floor(Math.random() * 3) + 3;
+  for (let i = 0; i < bubbleCount; i++) {
+    // Slight offset for each bubble
+    const offsetX = (Math.random() - 0.5) * 30;
+    const offsetY = (Math.random() - 0.5) * 30;
+    setTimeout(() => {
+      createBubble(e.clientX + offsetX, e.clientY + offsetY);
+    }, i * 50);
+  }
+});
+
+// Add drag listener for bubbles
+document.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  
+  // Throttle bubble creation to every 50ms while dragging
+  const now = Date.now();
+  if (now - lastBubbleTime < 50) return;
+  lastBubbleTime = now;
+  
+  // Create 2-3 bubbles per drag movement
+  const bubbleCount = Math.floor(Math.random() * 2) + 2;
+  for (let i = 0; i < bubbleCount; i++) {
+    const offsetX = (Math.random() - 0.5) * 20;
+    const offsetY = (Math.random() - 0.5) * 20;
+    createBubble(e.clientX + offsetX, e.clientY + offsetY);
+  }
+});
+
+// 🌟 Show Weight Converter automatically on page load
+window.addEventListener('DOMContentLoaded', () => {
+  showCalculator('weight');
+});
+
+function clickSound() {
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(480, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(620, audioCtx.currentTime + 0.06);
+
+  gain.gain.value = 0.18;
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  osc.start();
+  gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
+  osc.stop(audioCtx.currentTime + 0.1);
+}
+
+document.querySelectorAll('input, textarea').forEach(input => {
+  input.addEventListener('keydown', (e) => {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    if (e.key === "Backspace") {
+      // Play different sound if input is empty
+      if (input.value === '') {
+        keySound(200); // Lower "error" tone for empty backspace
+      } else {
+        keySound(400); // Normal backspace sound
+      }
+    } else if (e.key === "Enter") {
+      keySound(300);
+    } else if (e.key.length === 1) {
+      keySound(700);
+    }
+  });
+});
+
+
+let bgGain, bgInterval;
+
+function playNote(freq, duration) {
+  const osc = audioCtx.createOscillator();
+  osc.type = "triangle"; // warmer, softer lofi sound
+  osc.frequency.value = freq;
+  
+  // Add slight detuning for that lofi imperfection
+  const detune = (Math.random() - 0.5) * 8;
+  osc.detune.value = detune;
+  
+  osc.connect(bgGain);
+  osc.start();
+  osc.stop(audioCtx.currentTime + duration);
+}
+
+function startBgMusic() {
+  if (bgInterval) return; // already playing
+  bgGain = audioCtx.createGain();
+  bgGain.gain.value = musicOn ? 0.04 : 0; // Respect current mute state
+  bgGain.connect(audioCtx.destination);
+
+  // Lofi chorus - slower, more relaxed timing
+  const melody = [
+    // Main chorus hook (slowed down)
+    { note: 880, time: 0 },     // A5
+    { note: 988, time: 350 },   // B5
+    { note: 1047, time: 700 },  // C6
+    { note: 1175, time: 1050 }, // D6
+    { note: 1047, time: 1400 }, // C6
+    { note: 988, time: 1750 },  // B5
+    
+    { note: 880, time: 2200 },  // A5
+    { note: 784, time: 2550 },  // G5
+    { note: 880, time: 2900 },  // A5
+    { note: 988, time: 3250 },  // B5
+    
+    // High energy part (chill version)
+    { note: 1047, time: 3700 }, // C6
+    { note: 1175, time: 4050 }, // D6
+    { note: 1319, time: 4400 }, // E6
+    { note: 1175, time: 4750 }, // D6
+    { note: 1047, time: 5100 }, // C6
+    
+    // Resolution
+    { note: 988, time: 5550 },  // B5
+    { note: 880, time: 5900 },  // A5
+    { note: 784, time: 6250 },  // G5
+    { note: 659, time: 6600 }   // E5
+  ];
+
+  bgInterval = setInterval(() => {
+    melody.forEach(({ note, time }) => {
+      setTimeout(() => playNote(note, 0.3), time);
+    });
+  }, 6900); // Tighter loop for seamless flow
+}
+
+// unlock audio context on first click (but don't auto-start music)
+document.addEventListener('click', () => {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}, { once: true });
+
+// optional mute toggle
+let musicOn = false; // Start muted by default
+function toggleMusic() {
+  musicOn = !musicOn;
+  const btn = document.getElementById('musicToggle');
+  
+  if (musicOn) {
+    btn.textContent = '🔊';
+    if (!bgInterval) {
+      // Start music if it hasn't started yet
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      startBgMusic();
+    } else if (bgGain) {
+      bgGain.gain.value = 0.04;
+    }
+  } else {
+    btn.textContent = '🔇';
+    if (bgGain) {
+      bgGain.gain.value = 0;
+    }
+  }
+}
+</script>
+
+</body>
+</html>
